@@ -28,6 +28,14 @@ def grill_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture()
+def planning_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    planning = tmp_path / "planning"
+    planning.mkdir()
+    monkeypatch.setenv("GRILL_PLANNING_ROOT", str(planning))
+    return planning
+
+
+@pytest.fixture()
 def round_one_prompt() -> dict:
     path = package_root() / "fixtures" / "round-001.prompt.json"
     return json.loads(path.read_text(encoding="utf-8"))
@@ -57,6 +65,10 @@ def seed_active_round(
 
 
 @pytest.fixture()
-def client(grill_workspace: Path, round_one_prompt: dict) -> TestClient:
+def client(
+    grill_workspace: Path,
+    planning_repo: Path,
+    round_one_prompt: dict,
+) -> TestClient:
     seed_active_round(grill_workspace, round_one_prompt)
-    return TestClient(create_app(grill_workspace))
+    return TestClient(create_app(grill_workspace, planning_repo))

@@ -28,11 +28,11 @@ def test_get_active_round_shows_questions_and_recommended(client: TestClient) ->
 
 
 def test_invalid_round_prompt_shows_validation_detail(
-    grill_workspace: Path, round_one_prompt: dict
+    grill_workspace: Path, planning_repo: Path, round_one_prompt: dict
 ) -> None:
     bad = {**round_one_prompt, "questions": []}
     seed_active_round(grill_workspace, bad)
-    client = TestClient(create_app(grill_workspace))
+    client = TestClient(create_app(grill_workspace, planning_repo))
     response = client.get("/round")
     assert response.status_code == 422
     assert "Invalid round prompt" in response.text
@@ -62,7 +62,7 @@ def test_submit_writes_answers_with_custom_override(
 
 
 def test_prior_rounds_render_as_collapsed_history(
-    grill_workspace: Path, round_one_prompt: dict
+    grill_workspace: Path, planning_repo: Path, round_one_prompt: dict
 ) -> None:
     seed_active_round(grill_workspace, round_one_prompt, round_number=1)
     round_answers_path(grill_workspace, 1).write_text(
@@ -108,7 +108,7 @@ def test_prior_rounds_render_as_collapsed_history(
             phase=SessionPhase.ACTIVE_ROUND,
         ),
     )
-    client = TestClient(create_app(grill_workspace))
+    client = TestClient(create_app(grill_workspace, planning_repo))
     response = client.get("/round")
     assert response.status_code == 200
     assert "<details>" in response.text
@@ -117,7 +117,7 @@ def test_prior_rounds_render_as_collapsed_history(
 
 
 def test_awaiting_completion_writes_session_complete(
-    grill_workspace: Path, round_one_prompt: dict
+    grill_workspace: Path, planning_repo: Path, round_one_prompt: dict
 ) -> None:
     seed_active_round(grill_workspace, round_one_prompt)
     save_manifest(
@@ -129,7 +129,7 @@ def test_awaiting_completion_writes_session_complete(
             phase=SessionPhase.AWAITING_COMPLETION,
         ),
     )
-    client = TestClient(create_app(grill_workspace))
+    client = TestClient(create_app(grill_workspace, planning_repo))
     response = client.post("/round/complete", follow_redirects=False)
     assert response.status_code == 303
     assert (grill_workspace / "session.complete.json").is_file()
@@ -162,7 +162,7 @@ def test_wait_exits_when_answers_appear(
 
 
 def test_resume_keeps_prior_round_files(
-    grill_workspace: Path, round_one_prompt: dict
+    grill_workspace: Path, planning_repo: Path, round_one_prompt: dict
 ) -> None:
     seed_active_round(grill_workspace, round_one_prompt)
     round_answers_path(grill_workspace, 1).write_text('{"round":1,"answers":[]}\n')
@@ -175,7 +175,7 @@ def test_resume_keeps_prior_round_files(
             phase=SessionPhase.ACTIVE_ROUND,
         ),
     )
-    client = TestClient(create_app(grill_workspace))
+    client = TestClient(create_app(grill_workspace, planning_repo))
     assert client.get("/round").status_code == 200
     assert round_answers_path(grill_workspace, 1).is_file()
     assert (grill_workspace / "round-001.prompt.json").is_file()

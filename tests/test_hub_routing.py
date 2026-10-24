@@ -31,10 +31,10 @@ def test_planning_repo_root_separate_from_grill_workspace(
 
 
 def test_dashboard_at_root_includes_hub_navigation(
-    grill_workspace: Path, round_one_prompt: dict
+    grill_workspace: Path, planning_repo: Path, round_one_prompt: dict
 ) -> None:
     seed_active_round(grill_workspace, round_one_prompt)
-    client = TestClient(create_app(grill_workspace))
+    client = TestClient(create_app(grill_workspace, planning_repo))
     response = client.get("/")
     assert response.status_code == 200
     assert "Session dashboard" in response.text
@@ -66,18 +66,18 @@ def test_submit_via_round_route(
 
 
 def test_invalid_prompt_on_round_route(
-    grill_workspace: Path, round_one_prompt: dict
+    grill_workspace: Path, planning_repo: Path, round_one_prompt: dict
 ) -> None:
     bad = {**round_one_prompt, "questions": []}
     seed_active_round(grill_workspace, bad)
-    client = TestClient(create_app(grill_workspace))
+    client = TestClient(create_app(grill_workspace, planning_repo))
     response = client.get("/round")
     assert response.status_code == 422
     assert "Invalid round prompt" in response.text
 
 
 def test_answers_ready_on_round_route(
-    grill_workspace: Path, round_one_prompt: dict
+    grill_workspace: Path, planning_repo: Path, round_one_prompt: dict
 ) -> None:
     seed_active_round(grill_workspace, round_one_prompt)
     save_manifest(
@@ -89,7 +89,7 @@ def test_answers_ready_on_round_route(
             phase=SessionPhase.ACTIVE_ROUND,
         ),
     )
-    client = TestClient(create_app(grill_workspace))
+    client = TestClient(create_app(grill_workspace, planning_repo))
     response = client.get("/round")
     assert response.status_code == 200
     assert "submitted" in response.text.lower()
