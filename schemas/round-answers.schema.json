@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grill-me-better.local/schemas/round-answers.schema.json",
+  "title": "Round answers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["round", "answers"],
+  "properties": {
+    "round": { "type": "integer", "minimum": 1 },
+    "answers": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/answer" }
+    }
+  },
+  "$defs": {
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questionId"],
+      "properties": {
+        "questionId": { "type": "string", "minLength": 1 },
+        "selectedOptionId": { "type": ["string", "null"] },
+        "customAnswer": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

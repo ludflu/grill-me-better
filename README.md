@@ -10,6 +10,8 @@
 
 # Skills For Real Engineers
 
+**Grill Me Better** (browser grill-with-docs + Python local server) lives in [`docs/grill-me-better/README.md`](docs/grill-me-better/README.md).
+
 [![skills.sh](https://skills.sh/b/mattpocock/skills)](https://skills.sh/mattpocock/skills)
 
 My agent skills that I use every day to do real engineering - not vibe coding.

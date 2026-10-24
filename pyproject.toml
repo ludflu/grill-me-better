@@ -1,0 +1,31 @@
+[project]
+name = "grill-me-better"
+version = "0.1.0"
+description = "Local grill server and browser UI for grill-with-docs planning"
+readme = "README.md"
+authors = [
+    { name = "James Snavely", email = "ludflu@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "jsonschema>=4.23",
+    "python-multipart>=0.0.20",
+    "starlette>=0.46",
+    "uvicorn>=0.34",
+]
+
+[project.scripts]
+grill-me-better = "grill_me_better.cli:main"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28",
+    "pytest>=8.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
