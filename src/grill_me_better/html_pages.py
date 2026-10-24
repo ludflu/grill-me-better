@@ -38,6 +38,8 @@ ul.files li { margin: 0.35rem 0; }
 .glossary-view dd { margin: 0.25rem 0 0 0; }
 .glossary-view .avoid { color: #555; font-size: 0.9rem; margin-top: 0.35rem; }
 .glossary-edit fieldset.term { margin: 1rem 0; }
+.glossary-edit textarea.description { min-height: 6rem; }
+.glossary-edit .hint { color: #555; font-size: 0.9rem; margin: 0.5rem 0 1rem; }
 """
 
 
@@ -183,45 +185,18 @@ def diff_preview_page(rel_path: str, diff_text: str, new_content: str) -> str:
     return hub_shell("Preview diff", body, active="artifacts")
 
 
-def glossary_view_page(doc: GlossaryDocument, *, missing_file: bool) -> str:
-    if missing_file:
-        body = (
-            "<h1>Glossary</h1>"
-            "<p>No GLOSSARY.md in this repo yet.</p>"
-            '<p><a href="/edit/glossary">Create glossary</a></p>'
-        )
-        return hub_shell("Glossary", body, active="glossary")
-    items = ""
-    for term in doc.terms:
-        avoid = (
-            f'<p class="avoid">Avoid: {html.escape(term.avoid)}</p>'
-            if term.avoid.strip()
-            else ""
-        )
-        items += (
-            f"<dt>{html.escape(term.name)}</dt>"
-            f"<dd>{html.escape(term.definition)}{avoid}</dd>"
-        )
-    preamble = (
-        f"<p>{html.escape(doc.preamble)}</p>" if doc.preamble.strip() else ""
+def glossary_page(doc: GlossaryDocument, *, creating: bool = False) -> str:
+    hint = (
+        '<p class="hint">No GLOSSARY.md yet — fill in terms below and save to create the file.</p>'
+        if creating
+        else '<p class="hint">Edit descriptions and other fields, then preview changes before saving.</p>'
     )
-    body = (
-        f"<h1>{html.escape(doc.title)}</h1>"
-        f"{preamble}"
-        '<p><a href="/edit/glossary">Edit glossary</a></p>'
-        f'<div class="glossary-view"><h2>Language</h2><dl>{items}</dl></div>'
-    )
-    if doc.tail.strip():
-        body += f'<pre class="md-plain">{html.escape(doc.tail)}</pre>'
-    return hub_shell(doc.title, body, active="glossary")
-
-
-def glossary_edit_page(doc: GlossaryDocument) -> str:
     rows = (
         f'<label>Title<input type="text" name="title" '
         f'value="{html.escape(doc.title)}"></label>'
         f'<label>Intro (before ## Language)<textarea name="preamble">'
         f"{html.escape(doc.preamble)}</textarea></label>"
+        "<h2>Language</h2>"
     )
     for index, term in enumerate(doc.terms):
         rows += (
@@ -229,7 +204,8 @@ def glossary_edit_page(doc: GlossaryDocument) -> str:
             f'<input type="hidden" name="index" value="{index}">'
             f'<label>Term<input type="text" name="name_{index}" '
             f'value="{html.escape(term.name)}"></label>'
-            f'<label>Definition<textarea name="definition_{index}">'
+            f'<label>Description<textarea class="description" '
+            f'name="definition_{index}">'
             f"{html.escape(term.definition)}</textarea></label>"
             f'<label>Avoid<textarea name="avoid_{index}">'
             f"{html.escape(term.avoid)}</textarea></label></fieldset>"
@@ -237,17 +213,24 @@ def glossary_edit_page(doc: GlossaryDocument) -> str:
     rows += (
         '<fieldset class="term"><legend>Add term</legend>'
         '<label>Term<input type="text" name="new_name"></label>'
-        '<label>Definition<textarea name="new_definition"></textarea></label>'
+        '<label>Description<textarea class="description" name="new_definition">'
+        "</textarea></label>"
         '<label>Avoid<textarea name="new_avoid"></textarea></label></fieldset>'
         f'<input type="hidden" name="term_count" value="{len(doc.terms)}">'
         '<button type="submit">Preview diff</button>'
     )
+    if doc.tail.strip():
+        rows += (
+            f'<p class="hint">Content after ## Language (read-only in this editor):</p>'
+            f'<pre class="md-plain">{html.escape(doc.tail)}</pre>'
+        )
     body = (
-        "<h1>Edit GLOSSARY.md</h1>"
-        '<p><a href="/glossary">Back to glossary view</a></p>'
-        f'<form method="post" action="/edit/glossary/preview">{rows}</form>'
+        f"<h1>{html.escape(doc.title)}</h1>"
+        f"{hint}"
+        f'<form class="glossary-edit" method="post" action="/edit/glossary/preview">'
+        f"{rows}</form>"
     )
-    return hub_shell("Edit glossary", body, active="glossary")
+    return hub_shell(doc.title, body, active="glossary")
 
 
 def adr_edit_page(path: str, form_fields: dict[str, str]) -> str:

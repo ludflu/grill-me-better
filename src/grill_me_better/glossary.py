@@ -6,7 +6,9 @@ import re
 from dataclasses import dataclass, field
 
 TERM_PATTERN = re.compile(
-    r"\*\*(.+?)\*\*:\s*\n(.*?)(?:\n_Avoid_:\s*(.*?))?(?=\n\*\*|\n##|\Z)",
+    r"\*\*(.+?)\*\*:\s*"
+    r"(?:\n(.*?)|([^\n]+))"
+    r"(?:\n_Avoid_:\s*(.*?))?(?=\n\*\*|\n##|\n?\Z)",
     re.DOTALL,
 )
 
@@ -41,11 +43,12 @@ def parse_glossary(markdown: str) -> GlossaryDocument:
     tail = after_lang[next_section.start() :] if next_section else ""
     terms: list[GlossaryTerm] = []
     for match in TERM_PATTERN.finditer(language_body):
+        definition = (match.group(2) or match.group(3) or "").strip()
         terms.append(
             GlossaryTerm(
                 name=match.group(1).strip(),
-                definition=match.group(2).strip(),
-                avoid=(match.group(3) or "").strip(),
+                definition=definition,
+                avoid=(match.group(4) or "").strip(),
             )
         )
     return GlossaryDocument(title=title, preamble=preamble, terms=terms, tail=tail.strip())

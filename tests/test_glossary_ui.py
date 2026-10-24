@@ -33,16 +33,28 @@ def test_glossary_view_lists_all_terms(planning_repo: Path, grill_workspace: Pat
     assert response.status_code == 200
     assert "Grill session" in response.text
     assert "Round" in response.text
-    assert "Edit glossary" in response.text
+    assert 'name="definition_0"' in response.text
+    assert "A single planning interview." in response.text
 
 
-def test_glossary_edit_form_lists_each_term(planning_repo: Path, grill_workspace: Path) -> None:
+def test_glossary_edit_redirects_to_main_page(planning_repo: Path, grill_workspace: Path) -> None:
     (planning_repo / "GLOSSARY.md").write_text(SAMPLE)
     client = TestClient(create_app(grill_workspace, planning_repo))
-    response = client.get("/edit/glossary")
-    assert response.status_code == 200
-    assert 'name="name_0"' in response.text
-    assert 'name="name_1"' in response.text
+    response = client.get("/edit/glossary", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "/glossary"
+
+
+def test_parse_inline_description() -> None:
+    md = """# G
+
+## Language
+
+**Term**: One-line description.
+"""
+    doc = parse_glossary(md)
+    assert len(doc.terms) == 1
+    assert doc.terms[0].definition == "One-line description."
 
 
 def test_glossary_save_round_trip(planning_repo: Path, grill_workspace: Path) -> None:

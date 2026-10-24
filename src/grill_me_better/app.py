@@ -179,18 +179,13 @@ def create_app(
         path = planning / "GLOSSARY.md"
         if not path.is_file():
             return HTMLResponse(
-                html_pages.glossary_view_page(
-                    parse_glossary(""), missing_file=True
-                )
+                html_pages.glossary_page(GlossaryDocument(title="Glossary"), creating=True)
             )
         doc = parse_glossary(path.read_text(encoding="utf-8"))
-        return HTMLResponse(html_pages.glossary_view_page(doc, missing_file=False))
+        return HTMLResponse(html_pages.glossary_page(doc))
 
-    async def get_edit_glossary(_: Request) -> HTMLResponse:
-        path = planning / "GLOSSARY.md"
-        text = path.read_text(encoding="utf-8") if path.is_file() else ""
-        doc = parse_glossary(text) if text else GlossaryDocument(title="Glossary")
-        return HTMLResponse(html_pages.glossary_edit_page(doc))
+    async def get_edit_glossary(_: Request) -> RedirectResponse:
+        return RedirectResponse("/glossary", status_code=302)
 
     async def post_preview_glossary(request: Request) -> HTMLResponse:
         form = await request.form()
