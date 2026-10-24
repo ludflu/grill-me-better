@@ -13,6 +13,10 @@ from starlette.routing import Route
 
 from grill_me_better import html_pages
 from grill_me_better.paths import (
+    ROUND_COMPLETE_ROUTE,
+    ROUND_ROUTE,
+    ROUND_SUBMIT_ROUTE,
+    resolve_planning_repo_root,
     round_answers_path,
     round_prompt_path,
     session_complete_path,
@@ -28,7 +32,30 @@ from grill_me_better.session import (
 from grill_me_better.validation import validate_round_answers, validate_round_prompt
 
 
-def create_app(workspace: Path) -> Starlette:
+def create_app(
+    workspace: Path,
+    planning_root: Path | None = None,
+) -> Starlette:
+    _planning_root = planning_root or resolve_planning_repo_root()
+
+    async def get_dashboard(_: Request) -> HTMLResponse:
+        manifest = load_manifest(workspace)
+        if manifest is None:
+            page = html_pages.dashboard_page(
+                has_session=False,
+                phase=None,
+                status=None,
+                current_round=None,
+            )
+            return HTMLResponse(page)
+        page = html_pages.dashboard_page(
+            has_session=True,
+            phase=manifest.phase.value,
+            status=manifest.status.value,
+            current_round=manifest.current_round,
+        )
+        return HTMLResponse(page)
+
     async def get_round(_: Request) -> HTMLResponse:
         manifest = load_manifest(workspace)
         if manifest is None:
@@ -37,8 +64,9 @@ def create_app(workspace: Path) -> Starlette:
                 status_code=404,
             )
         if manifest.phase == SessionPhase.COMPLETE:
+            body = "<h1>Grill session complete</h1><p><a href=\"/\">Dashboard</a></p>"
             return HTMLResponse(
-                html_pages.page("Complete", "<h1>Grill session complete</h1>"),
+                html_pages.hub_shell("Complete", body, active="round")
             )
         if manifest.phase == SessionPhase.AWAITING_COMPLETION:
             return HTMLResponse(html_pages.completion_page())
@@ -78,7 +106,7 @@ def create_app(workspace: Path) -> Starlette:
             phase=manifest.phase,
         )
         save_manifest(workspace, updated)
-        return RedirectResponse("/", status_code=303)
+        return RedirectResponse(ROUND_ROUTE, status_code=303)
 
     async def post_complete(_: Request) -> HTMLResponse:
         manifest = load_manifest(workspace)
@@ -96,10 +124,12 @@ def create_app(workspace: Path) -> Starlette:
         return RedirectResponse("/", status_code=303)
 
     routes = [
-        Route("/", get_round, methods=["GET"]),
-        Route("/submit", post_submit, methods=["POST"]),
-        Route("/complete", post_complete, methods=["POST"]),
+        Route("/", get_dashboard, methods=["GET"]),
+        Route(ROUND_ROUTE, get_round, methods=["GET"]),
+        Route(ROUND_SUBMIT_ROUTE, post_submit, methods=["POST"]),
+        Route(ROUND_COMPLETE_ROUTE, post_complete, methods=["POST"]),
     ]
+    _ = _planning_root  # reserved for artifact tabs (ticket 03+)
     return Starlette(routes=routes)
 
 

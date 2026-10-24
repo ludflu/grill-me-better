@@ -14,6 +14,7 @@ from grill_me_better.app import create_app
 from grill_me_better.paths import (
     DEFAULT_HOST,
     resolve_grill_workspace,
+    resolve_planning_repo_root,
     round_prompt_path,
 )
 from grill_me_better.port import pick_port
@@ -71,7 +72,8 @@ def serve() -> None:
     else:
         port = manifest.port
 
-    app = create_app(workspace)
+    planning_root = resolve_planning_repo_root()
+    app = create_app(workspace, planning_root)
     uvicorn.run(app, host=manifest.host, port=port, log_level="info")
 
 

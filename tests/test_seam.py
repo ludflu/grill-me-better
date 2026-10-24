@@ -20,7 +20,7 @@ from conftest import seed_active_round
 
 
 def test_get_active_round_shows_questions_and_recommended(client: TestClient) -> None:
-    response = client.get("/")
+    response = client.get("/round")
     assert response.status_code == 200
     assert "Scope" in response.text
     assert 'value="yes"' in response.text
@@ -33,7 +33,7 @@ def test_invalid_round_prompt_shows_validation_detail(
     bad = {**round_one_prompt, "questions": []}
     seed_active_round(grill_workspace, bad)
     client = TestClient(create_app(grill_workspace))
-    response = client.get("/")
+    response = client.get("/round")
     assert response.status_code == 422
     assert "Invalid round prompt" in response.text
     assert "questions" in response.text.lower()
@@ -43,7 +43,7 @@ def test_submit_writes_answers_with_custom_override(
     client: TestClient, grill_workspace: Path
 ) -> None:
     response = client.post(
-        "/submit",
+        "/round/submit",
         data={
             "q_q1": "yes",
             "custom_q1": "My own scope decision",
@@ -109,7 +109,7 @@ def test_prior_rounds_render_as_collapsed_history(
         ),
     )
     client = TestClient(create_app(grill_workspace))
-    response = client.get("/")
+    response = client.get("/round")
     assert response.status_code == 200
     assert "<details>" in response.text
     assert "Round 1" in response.text
@@ -130,7 +130,7 @@ def test_awaiting_completion_writes_session_complete(
         ),
     )
     client = TestClient(create_app(grill_workspace))
-    response = client.post("/complete", follow_redirects=False)
+    response = client.post("/round/complete", follow_redirects=False)
     assert response.status_code == 303
     assert (grill_workspace / "session.complete.json").is_file()
     manifest = load_manifest(grill_workspace)
@@ -176,6 +176,6 @@ def test_resume_keeps_prior_round_files(
         ),
     )
     client = TestClient(create_app(grill_workspace))
-    assert client.get("/").status_code == 200
+    assert client.get("/round").status_code == 200
     assert round_answers_path(grill_workspace, 1).is_file()
     assert (grill_workspace / "round-001.prompt.json").is_file()

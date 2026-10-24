@@ -27,6 +27,18 @@ def resolve_grill_workspace(cwd: Path | None = None) -> Path:
     return base / ".grill"
 
 
+def resolve_planning_repo_root(cwd: Path | None = None) -> Path:
+    override = os.environ.get("GRILL_PLANNING_ROOT")
+    if override:
+        return Path(override)
+    return cwd or Path.cwd()
+
+
+ROUND_ROUTE = "/round"
+ROUND_SUBMIT_ROUTE = "/round/submit"
+ROUND_COMPLETE_ROUTE = "/round/complete"
+
+
 def round_prompt_path(workspace: Path, round_number: int) -> Path:
     return workspace / f"round-{round_number:03d}.prompt.json"
 
