@@ -29,6 +29,3 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
-[tool.uv.build]
-package-data = { "grill_me_better" = ["static/*"] }

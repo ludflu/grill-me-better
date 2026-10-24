@@ -17,7 +17,7 @@ from grill_me_better.paths import (
     resolve_planning_repo_root,
     round_prompt_path,
 )
-from grill_me_better.port import pick_port
+from grill_me_better.port import pick_port, resolve_serve_port
 from grill_me_better.session import (
     SessionManifest,
     SessionPhase,
@@ -59,10 +59,17 @@ def serve() -> None:
             sys.exit(1)
         save_manifest(workspace, manifest)
     elif manifest.phase != SessionPhase.COMPLETE:
-        port = manifest.port if manifest.port else pick_port(DEFAULT_HOST)
-        if port != manifest.port:
+        host = manifest.host or DEFAULT_HOST
+        old_port = manifest.port
+        port = resolve_serve_port(host, manifest.port or None)
+        if port != old_port:
+            if old_port:
+                print(
+                    f"Port {old_port} is in use; serving on {port} instead.",
+                    file=sys.stderr,
+                )
             manifest = SessionManifest(
-                host=manifest.host,
+                host=host,
                 port=port,
                 current_round=manifest.current_round,
                 status=manifest.status,
@@ -70,11 +77,12 @@ def serve() -> None:
             )
             save_manifest(workspace, manifest)
     else:
-        port = manifest.port
+        host = manifest.host or DEFAULT_HOST
+        port = resolve_serve_port(host, manifest.port or None)
 
     planning_root = resolve_planning_repo_root()
     app = create_app(workspace, planning_root)
-    uvicorn.run(app, host=manifest.host, port=port, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 def _manifest_from_prompt(workspace: Path, port: int) -> SessionManifest | None:
