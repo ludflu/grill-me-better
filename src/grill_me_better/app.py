@@ -24,14 +24,14 @@ from grill_me_better.artifacts import (
 from grill_me_better.diff_preview import unified_diff
 from grill_me_better.editors import (
     parse_adr_form,
-    parse_glossary_form,
     parse_spec_form,
     parse_ticket_form,
     render_adr,
-    render_glossary,
     render_spec,
     render_ticket,
 )
+from grill_me_better.glossary import GlossaryDocument, parse_glossary, render_glossary
+from grill_me_better.glossary_form import document_from_form
 from grill_me_better.markdown_view import markdown_to_view_html
 from grill_me_better.paths import (
     ROUND_COMPLETE_ROUTE,
@@ -168,33 +168,36 @@ def create_app(
                 html_pages.error_page("Read error", [str(exc)]),
                 status_code=500,
             )
+        if rel == "GLOSSARY.md":
+            return RedirectResponse("/glossary", status_code=302)
         content_html, has_mermaid = markdown_to_view_html(text)
         return HTMLResponse(
             html_pages.artifact_view_page(rel, content_html, has_mermaid=has_mermaid)
         )
 
+    async def get_glossary_view(_: Request) -> HTMLResponse:
+        path = planning / "GLOSSARY.md"
+        if not path.is_file():
+            return HTMLResponse(
+                html_pages.glossary_view_page(
+                    parse_glossary(""), missing_file=True
+                )
+            )
+        doc = parse_glossary(path.read_text(encoding="utf-8"))
+        return HTMLResponse(html_pages.glossary_view_page(doc, missing_file=False))
+
     async def get_edit_glossary(_: Request) -> HTMLResponse:
         path = planning / "GLOSSARY.md"
-        text = path.read_text(encoding="utf-8") if path.is_file() else "# Glossary\n\n## Language\n\n"
-        form = parse_glossary_form(text)
-        fields = {
-            "title": form.title,
-            "term": form.term,
-            "definition": form.definition,
-            "avoid": form.avoid,
-        }
-        return HTMLResponse(html_pages.glossary_edit_page(fields))
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+        doc = parse_glossary(text) if text else GlossaryDocument(title="Glossary")
+        return HTMLResponse(html_pages.glossary_edit_page(doc))
 
     async def post_preview_glossary(request: Request) -> HTMLResponse:
         form = await request.form()
         path = planning / "GLOSSARY.md"
         before = path.read_text(encoding="utf-8") if path.is_file() else ""
-        gf = parse_glossary_form(before)
-        gf.title = str(form.get("title", gf.title))
-        gf.term = str(form.get("term", ""))
-        gf.definition = str(form.get("definition", ""))
-        gf.avoid = str(form.get("avoid", ""))
-        after = render_glossary(gf, before)
+        doc = document_from_form(form, before)
+        after = render_glossary(doc)
         diff = unified_diff(before, after, "GLOSSARY.md")
         return HTMLResponse(html_pages.diff_preview_page("GLOSSARY.md", diff, after))
 
@@ -274,6 +277,8 @@ def create_app(
             return HTMLResponse("Invalid path", status_code=400)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
+        if rel == "GLOSSARY.md":
+            return RedirectResponse("/glossary", status_code=303)
         return RedirectResponse(f"/artifact?path={quote(rel)}", status_code=303)
 
     routes = [
@@ -284,6 +289,7 @@ def create_app(
         Route(ROUND_COMPLETE_ROUTE, post_complete, methods=["POST"]),
         Route("/artifacts/{kind}", get_artifact_index, methods=["GET"]),
         Route("/artifact", get_artifact_view, methods=["GET"]),
+        Route("/glossary", get_glossary_view, methods=["GET"]),
         Route("/edit/glossary", get_edit_glossary, methods=["GET"]),
         Route("/edit/glossary/preview", post_preview_glossary, methods=["POST"]),
         Route("/edit/adr", get_edit_adr, methods=["GET"]),

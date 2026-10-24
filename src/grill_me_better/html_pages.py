@@ -6,6 +6,7 @@ import html
 from typing import Any
 
 from grill_me_better.artifacts import KIND_LABELS, ArtifactRef
+from grill_me_better.glossary import GlossaryDocument, GlossaryTerm
 from grill_me_better.markdown_body import body_markdown_to_html
 
 
@@ -32,6 +33,11 @@ pre.md-plain { white-space: pre-wrap; background: #f8f8f8; padding: 0.75rem; }
 pre.diff { white-space: pre-wrap; background: #f4f4f4; padding: 0.75rem; font-size: 0.8rem; }
 ul.files { list-style: none; padding: 0; }
 ul.files li { margin: 0.35rem 0; }
+.glossary-view dl { margin: 1rem 0; }
+.glossary-view dt { font-weight: 700; margin-top: 1rem; }
+.glossary-view dd { margin: 0.25rem 0 0 0; }
+.glossary-view .avoid { color: #555; font-size: 0.9rem; margin-top: 0.35rem; }
+.glossary-edit fieldset.term { margin: 1rem 0; }
 """
 
 
@@ -69,10 +75,12 @@ def hub_shell(
     dash = "active" if active == "dashboard" else ""
     rnd = "active" if active == "round" else ""
     art = "active" if active == "artifacts" else ""
+    gloss = "active" if active == "glossary" else ""
     nav = (
         f'<nav class="hub" aria-label="Grill hub">'
         f'<a href="/" class="{dash}">Dashboard</a>'
         f'<a href="/round" class="{rnd}">Round</a>'
+        f'<a href="/glossary" class="{gloss}">Glossary</a>'
         f'<span class="{art}">'
         f"{_artifact_nav(artifact_kind)}"
         f"</span>"
@@ -121,6 +129,12 @@ def dashboard_page(
 
 def artifact_index_page(kind: str, items: list[ArtifactRef], empty_help: str) -> str:
     if items:
+        if kind == "glossary":
+            body = (
+                f"<h1>{html.escape(KIND_LABELS[kind])}</h1>"
+                '<p><a href="/glossary">View and edit GLOSSARY.md</a></p>'
+            )
+            return hub_shell(KIND_LABELS[kind], body, active="artifacts", artifact_kind=kind)
         lis = "".join(
             f'<li><a href="/artifact?path={html.escape(i.rel_path, quote=True)}">'
             f"{html.escape(i.label)}</a></li>"
@@ -138,7 +152,7 @@ def artifact_index_page(kind: str, items: list[ArtifactRef], empty_help: str) ->
 def artifact_view_page(rel_path: str, content_html: str, *, has_mermaid: bool) -> str:
     edit = ""
     if rel_path == "GLOSSARY.md":
-        edit = ' <a href="/edit/glossary">Edit glossary</a>'
+        edit = ' <a href="/glossary">View glossary</a>'
     elif rel_path.startswith("docs/adr/"):
         q = html.escape(rel_path, quote=True)
         edit = f' <a href="/edit/adr?path={q}">Edit ADR</a>'
@@ -169,17 +183,71 @@ def diff_preview_page(rel_path: str, diff_text: str, new_content: str) -> str:
     return hub_shell("Preview diff", body, active="artifacts")
 
 
-def glossary_edit_page(form_fields: dict[str, str]) -> str:
-    body = _edit_form(
-        "/edit/glossary/preview",
-        [
-            ("title", "Glossary title", form_fields.get("title", "")),
-            ("term", "Term", form_fields.get("term", "")),
-            ("definition", "Definition", form_fields.get("definition", ""), True),
-            ("avoid", "Avoid (comma-separated aliases)", form_fields.get("avoid", "")),
-        ],
+def glossary_view_page(doc: GlossaryDocument, *, missing_file: bool) -> str:
+    if missing_file:
+        body = (
+            "<h1>Glossary</h1>"
+            "<p>No GLOSSARY.md in this repo yet.</p>"
+            '<p><a href="/edit/glossary">Create glossary</a></p>'
+        )
+        return hub_shell("Glossary", body, active="glossary")
+    items = ""
+    for term in doc.terms:
+        avoid = (
+            f'<p class="avoid">Avoid: {html.escape(term.avoid)}</p>'
+            if term.avoid.strip()
+            else ""
+        )
+        items += (
+            f"<dt>{html.escape(term.name)}</dt>"
+            f"<dd>{html.escape(term.definition)}{avoid}</dd>"
+        )
+    preamble = (
+        f"<p>{html.escape(doc.preamble)}</p>" if doc.preamble.strip() else ""
     )
-    return hub_shell("Edit glossary", body, active="artifacts", artifact_kind="glossary")
+    body = (
+        f"<h1>{html.escape(doc.title)}</h1>"
+        f"{preamble}"
+        '<p><a href="/edit/glossary">Edit glossary</a></p>'
+        f'<div class="glossary-view"><h2>Language</h2><dl>{items}</dl></div>'
+    )
+    if doc.tail.strip():
+        body += f'<pre class="md-plain">{html.escape(doc.tail)}</pre>'
+    return hub_shell(doc.title, body, active="glossary")
+
+
+def glossary_edit_page(doc: GlossaryDocument) -> str:
+    rows = (
+        f'<label>Title<input type="text" name="title" '
+        f'value="{html.escape(doc.title)}"></label>'
+        f'<label>Intro (before ## Language)<textarea name="preamble">'
+        f"{html.escape(doc.preamble)}</textarea></label>"
+    )
+    for index, term in enumerate(doc.terms):
+        rows += (
+            f'<fieldset class="term"><legend>{html.escape(term.name)}</legend>'
+            f'<input type="hidden" name="index" value="{index}">'
+            f'<label>Term<input type="text" name="name_{index}" '
+            f'value="{html.escape(term.name)}"></label>'
+            f'<label>Definition<textarea name="definition_{index}">'
+            f"{html.escape(term.definition)}</textarea></label>"
+            f'<label>Avoid<textarea name="avoid_{index}">'
+            f"{html.escape(term.avoid)}</textarea></label></fieldset>"
+        )
+    rows += (
+        '<fieldset class="term"><legend>Add term</legend>'
+        '<label>Term<input type="text" name="new_name"></label>'
+        '<label>Definition<textarea name="new_definition"></textarea></label>'
+        '<label>Avoid<textarea name="new_avoid"></textarea></label></fieldset>'
+        f'<input type="hidden" name="term_count" value="{len(doc.terms)}">'
+        '<button type="submit">Preview diff</button>'
+    )
+    body = (
+        "<h1>Edit GLOSSARY.md</h1>"
+        '<p><a href="/glossary">Back to glossary view</a></p>'
+        f'<form method="post" action="/edit/glossary/preview">{rows}</form>'
+    )
+    return hub_shell("Edit glossary", body, active="glossary")
 
 
 def adr_edit_page(path: str, form_fields: dict[str, str]) -> str:

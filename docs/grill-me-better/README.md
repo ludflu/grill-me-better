@@ -39,6 +39,8 @@ Optional environment variables:
 | Path | Purpose |
 | --- | --- |
 | `/` | **Session dashboard** (phase, status, links) |
+| `/glossary` | View **GLOSSARY.md** (all terms) and link to edit |
+| `/edit/glossary` | Edit every term, preview diff, save to disk |
 | `/round` | Active **grill round** (split view + context panel) |
 | `/artifacts/{kind}` | Browse glossary, ADRs, specs, tickets, etc. |
 | `/artifact?path=...` | Read markdown (Mermaid rendered when present) |

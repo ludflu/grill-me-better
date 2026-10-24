@@ -62,16 +62,24 @@ def test_glossary_edit_preview_and_save(planning_repo: Path, grill_workspace: Pa
         "/edit/glossary/preview",
         data={
             "title": "G",
-            "term": "NewTerm",
-            "definition": "New def",
-            "avoid": "alias",
+            "preamble": "",
+            "term_count": "1",
+            "name_0": "Old",
+            "definition_0": "New def",
+            "avoid_0": "alias",
+            "new_name": "NewTerm",
+            "new_definition": "Extra term",
+            "new_avoid": "",
         },
     )
     assert preview.status_code == 200
     assert "Preview changes" in preview.text
     confirm = client.post(
         "/edit/confirm",
-        data={"path": "GLOSSARY.md", "content": "# G\n\n## Language\n\n**NewTerm**:\nNew def\n_Avoid_: alias\n"},
+        data={
+            "path": "GLOSSARY.md",
+            "content": "# G\n\n## Language\n\n**Old**:\nNew def\n_Avoid_: alias\n\n**NewTerm**:\nExtra term\n",
+        },
         follow_redirects=False,
     )
     assert confirm.status_code == 303
