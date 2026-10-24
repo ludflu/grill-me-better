@@ -2,7 +2,7 @@
 
 Local **grill server** and Cursor skill **`/grill-me-better`**: grill-with-docs in the browser, plus a **UI hub** for planning artifacts.
 
-- v1 spec: [SPEC.md](./SPEC.md) (in planning repos: `docs/SPEC-ui-hub.md` for hub v2)
+- v1 spec: [SPEC.md](./SPEC.md); UI hub: [SPEC-ui-hub.md](./SPEC-ui-hub.md)
 - Domain language: [GLOSSARY.md](./GLOSSARY.md)
 
 ## Setup
@@ -13,7 +13,17 @@ uv sync
 uv tool install --editable /path/to/grill-me-better
 ```
 
-Install the entry skill from `skills/productivity/grill-me-better/` (or symlink into `~/.cursor/skills/` / `~/.agents/skills/`).
+Install the entry skill (and forked helpers) via symlinks into `~/.cursor/skills/` or `~/.agents/skills/`:
+
+```bash
+REPO=/path/to/grill-me-better
+DEST=$HOME/.cursor/skills
+mkdir -p "$DEST"
+ln -sfn "$REPO/skills/productivity/grill-me-better" "$DEST/grill-me-better"
+ln -sfn "$REPO/skills/grill-me-better/grilling" "$DEST/grill-me-better-grilling"
+ln -sfn "$REPO/skills/grill-me-better/domain-modeling" "$DEST/grill-me-better-domain-modeling"
+ln -sfn "$REPO/skills/grill-me-better/grill-with-docs" "$DEST/grill-me-better-grill-with-docs"
+```
 
 Run `serve` from the **planning repo root** (where `.grill/` and `GLOSSARY.md` live).
 

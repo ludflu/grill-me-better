@@ -208,10 +208,20 @@ def create_app(
         target = resolve_safe_path(planning, rel)
         if target is None:
             return HTMLResponse("Invalid path", status_code=400)
+        title = str(form.get("title", "")).strip()
+        body = str(form.get("body", "")).strip()
+        if not title or not body:
+            return HTMLResponse(
+                html_pages.error_page(
+                    "Invalid ADR",
+                    ["Title and body are required."],
+                ),
+                status_code=400,
+            )
         before = target.read_text(encoding="utf-8")
         af = parse_adr_form(before)
-        af.title = str(form.get("title", af.title))
-        af.body = str(form.get("body", ""))
+        af.title = title
+        af.body = body
         after = render_adr(af)
         diff = unified_diff(before, after, rel)
         return HTMLResponse(html_pages.diff_preview_page(rel, diff, after))
