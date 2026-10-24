@@ -1,0 +1,5 @@
+interface:
+  display_name: "Grill Me Better"
+  short_description: "Grill-with-docs in the browser"
+policy:
+  allow_implicit_invocation: false

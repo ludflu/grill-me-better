@@ -1,0 +1,16 @@
+{
+  "round": 1,
+  "title": "Round 1 — frontier",
+  "questions": [
+    {
+      "id": "q1",
+      "title": "Scope",
+      "bodyMarkdown": "Should v1 stay aligned with grill-with-docs only?\n\nNo wayfinder or to-questionnaire in this release.",
+      "options": [
+        { "id": "yes", "label": "Yes — grill-with-docs parity only" },
+        { "id": "no", "label": "No — expand scope now" }
+      ],
+      "recommendedOptionId": "yes"
+    }
+  ]
+}
